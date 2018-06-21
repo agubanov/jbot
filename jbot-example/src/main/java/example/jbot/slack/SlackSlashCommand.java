@@ -89,4 +89,101 @@ public class SlackSlashCommand {
         
         return richMessage.encodedMessage(); // don't forget to send the encoded message to Slack
     }
+
+
+    /**
+     * Slash Command handler. When a user types for example "/app help"
+     * then slack sends a POST request to this endpoint. So, this endpoint
+     * should match the url you set while creating the Slack Slash Command.
+     *
+     * @param token
+     * @param teamId
+     * @param teamDomain
+     * @param channelId
+     * @param channelName
+     * @param userId
+     * @param userName
+     * @param command
+     * @param text
+     * @param responseUrl
+     * @return
+     */
+    @RequestMapping(value = "*",
+            method = RequestMethod.POST,
+            consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    public RichMessage onReceiveSlashCommandAll(@RequestParam("token") String token,
+                                             @RequestParam("team_id") String teamId,
+                                             @RequestParam("team_domain") String teamDomain,
+                                             @RequestParam("channel_id") String channelId,
+                                             @RequestParam("channel_name") String channelName,
+                                             @RequestParam("user_id") String userId,
+                                             @RequestParam("user_name") String userName,
+                                             @RequestParam("command") String command,
+                                             @RequestParam("text") String text,
+                                             @RequestParam("response_url") String responseUrl) {
+        // validate token
+        if (!token.equals(slackToken)) {
+            return new RichMessage("Sorry! You're not lucky enough to use our slack command.");
+        }
+
+        /** build response */
+        RichMessage richMessage = new RichMessage("The is Collaborator Slack Commander!");
+        richMessage.setResponseType("in_channel");
+        Attachment[] attachments = new Attachment[1];
+
+        final String CREATE_PR = "/create-pr";
+        final String REVIEW = "/review";
+
+        switch(command){
+
+            case CREATE_PR :
+                attachments[0] = new Attachment();
+                attachments[0].setText("Create PR command was run");
+                //todo ADD SOME ACTIVITIES FOR CREATE PR COMMAND
+                break;
+
+            case REVIEW:
+                attachments[0] = new Attachment();
+                attachments[0].setText("/review command was run");
+                //todo ADD SOME ACTIVITIES FOR REVIEW COMMAND
+
+                break;
+
+            default:
+
+                StringBuilder results = new StringBuilder();
+                results.append("token = " + token + " ");
+                results.append("team_id = " + teamId + " ");
+                results.append("team_domain = " + teamDomain + " ");
+                results.append("channel_id = " + channelId + " ");
+                results.append("channel_name = " + channelName + " ");
+                results.append("user_id = " + userId + " ");
+                results.append("user_name = " + userName + " ");
+                results.append("command = " + command + " ");
+                results.append("text = " + text + " ");
+                results.append("response_url = " + responseUrl + " ");
+                attachments[0] = new Attachment();
+                attachments[0].setText("Review will be created. http://collab.aus.smartbear.com/ui#review:id=13382" + results.toString());
+                attachments[0].setTitleLink("http://collab.aus.smartbear.com/ui#review:id=13385");
+        }
+
+        // set attachments
+        richMessage.setAttachments(attachments);
+
+        //create-pull-request
+        //start-review
+        //
+
+        richMessage.setText("Review was successfully created : http://collab.aus.smartbear.com/ui#review:id=13387");
+        // For debugging purpose only
+        if (logger.isDebugEnabled()) {
+            try {
+                logger.debug("Reply (RichMessage): {}", new ObjectMapper().writeValueAsString(richMessage));
+            } catch (JsonProcessingException e) {
+                logger.debug("Error parsing RichMessage: ", e);
+            }
+        }
+
+        return richMessage.encodedMessage(); // don't forget to send the encoded message to Slack
+    }
 }
