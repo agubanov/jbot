@@ -1,4 +1,4 @@
-package me.ramswaroop.jbot.core.github;
+package example.jbot.github;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;

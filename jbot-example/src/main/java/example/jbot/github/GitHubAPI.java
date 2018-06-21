@@ -1,13 +1,13 @@
-package me.ramswaroop.jbot.core.github;
+package example.jbot.github;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.GET;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.POST;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.PUT;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.DELETE;
+import static example.jbot.github.GitHubApiClient.Method.GET;
+import static example.jbot.github.GitHubApiClient.Method.POST;
+import static example.jbot.github.GitHubApiClient.Method.PUT;
+import static example.jbot.github.GitHubApiClient.Method.DELETE;
 
 
 public class GitHubAPI {
