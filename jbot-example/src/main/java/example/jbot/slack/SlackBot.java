@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.socket.WebSocketSession;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.regex.Matcher;
 
 /**
@@ -26,6 +28,7 @@ import java.util.regex.Matcher;
 public class SlackBot extends Bot {
 
     private static final Logger logger = LoggerFactory.getLogger(SlackBot.class);
+    private static Map<String, UserProfile> profileMap = new HashMap<>();
 
     /**
      * Slack token from application.properties file. You can get your slack token
@@ -42,20 +45,6 @@ public class SlackBot extends Bot {
     @Override
     public Bot getSlackBot() {
         return this;
-    }
-
-    /**
-     * Invoked when the bot receives a direct mention (@botname: message)
-     * or a direct message. NOTE: These two event types are added by jbot
-     * to make your task easier, Slack doesn't have any direct way to
-     * determine these type of events.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
-    public void onReceiveDM(WebSocketSession session, Event event) {
-        reply(session, event, "Hi, I am " + slackService.getCurrentUser().getName());
     }
 
     /**
@@ -100,65 +89,47 @@ public class SlackBot extends Bot {
         logger.info("File shared: {}", event);
     }
 
-
-    /**
-     * Conversation feature of JBot. This method is the starting point of the conversation (as it
-     * calls {@link Bot#startConversation(Event, String)} within it. You can chain methods which will be invoked
-     * one after the other leading to a conversation. You can chain methods with {@link Controller#next()} by
-     * specifying the method name to chain with.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(pattern = "(setup meeting)", next = "confirmTiming")
-    public void setupMeeting(WebSocketSession session, Event event) {
-        startConversation(event, "confirmTiming");   // start conversation
-        reply(session, event, "Cool! At what time (ex. 15:30) do you want me to set up the meeting?");
+    private UserProfile getUserProfile(String userId) {
+        return profileMap.putIfAbsent(userId, new UserProfile());
     }
 
-    /**
-     * This method will be invoked after {@link SlackBot#setupMeeting(WebSocketSession, Event)}.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(next = "askTimeForMeeting")
-    public void confirmTiming(WebSocketSession session, Event event) {
-        reply(session, event, "Your meeting is set at " + event.getText() +
-                ". Would you like to repeat it tomorrow?");
-        nextConversation(event);    // jump to next question in conversation
+
+    @Controller(pattern = "(configure profile)", next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    public void configureProfile(WebSocketSession session, Event event) {
+        startConversation(event, "askCollabCredentials");   // start conversation
+        reply(session, event, "Let's the party begin.\nEnter collab login and password (use whitespace as delimeter)");
     }
 
-    /**
-     * This method will be invoked after {@link SlackBot#confirmTiming(WebSocketSession, Event)}.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(next = "askWhetherToRepeat")
-    public void askTimeForMeeting(WebSocketSession session, Event event) {
-        if (event.getText().contains("yes")) {
-            reply(session, event, "Okay. Would you like me to set a reminder for you?");
-            nextConversation(event);    // jump to next question in conversation  
+
+    @Controller(next = "askGithubCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    public void askCollabCredentials(WebSocketSession session, Event event) {
+        String[] creds = event.getText().split(" ");
+        if (creds.length == 2) {
+            UserProfile userProfile = getUserProfile(event.getUserId());
+            userProfile.setCollabLogin(creds[0]);
+            userProfile.setCollabPassword(creds[1]);
+            reply(session, event,  " Enter Github repo and token (use whitespace as delimeter)");
+            nextConversation(event);    // jump to next question in conversation
         } else {
-            reply(session, event, "No problem. You can always schedule one with 'setup meeting' command.");
+            reply(session, event,  "You entered wrong number of parameters! \nStart from the beginning");
+            stopConversation(event);
+        }
+
+    }
+
+    @Controller(events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    public void askGithubCredentials(WebSocketSession session, Event event) {
+        String[] creds = event.getText().split(" ");
+        if (creds.length == 2) {
+            UserProfile userProfile = getUserProfile(event.getUserId());
+            userProfile.setGitHubRepo(creds[0]);
+            userProfile.setGitHubToken(creds[1]);
+            reply(session, event, "You are done! Good job!");
             stopConversation(event);    // stop conversation only if user says no
-        }
-    }
-
-    /**
-     * This method will be invoked after {@link SlackBot#askTimeForMeeting(WebSocketSession, Event)}.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller
-    public void askWhetherToRepeat(WebSocketSession session, Event event) {
-        if (event.getText().contains("yes")) {
-            reply(session, event, "Great! I will remind you tomorrow before the meeting.");
         } else {
-            reply(session, event, "Okay, don't forget to attend the meeting tomorrow :)");
+            reply(session, event,  "You entered wrong number of parameters! \nStart from the beginning");
+            stopConversation(event);
         }
-        stopConversation(event);    // stop conversation
+
     }
 }
