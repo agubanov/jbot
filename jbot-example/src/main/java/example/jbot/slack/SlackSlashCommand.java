@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 
@@ -35,6 +36,9 @@ public class SlackSlashCommand {
      */
     @Value("${slashCommandToken}")
     private String slackToken;
+
+    @Value("${gitHubToken}")
+    private String gitHubToken;
 
 
     /**
@@ -153,7 +157,7 @@ public class SlackSlashCommand {
                     String[] params = text.split(" ");
                     if (params.length != 2 && params.length != 3){
                         if(params.length == 1 && "close-pr".equals(params[0])){
-                            GitHubService.closePullRequest("https://github.com", "agubanov/jbot", "9e9902fb3b1f614672576432e1c8746ad5c78cfd", "test-branch");
+                            GitHubService.closePullRequest("https://github.com", "agubanov/jbot", gitHubToken, "test-branch");
                             attachments[0].setText("Pull request was successfully closed.");
                         }
                         else {
@@ -171,13 +175,24 @@ public class SlackSlashCommand {
                         String head = "zapelin-patch-102";
                         String base = "master";
                         String reviewLink = "";
-                        try {
-                            reviewLink = GitHubService.createGitHubPullRequestAndGetReviewLink("https://github.com", "agubanov/jbot", "9e9902fb3b1f614672576432e1c8746ad5c78cfd", "pr from bot", "test-branch", "master");
-                            attachments[0].setText("PR was successfully done. New review was created: " + reviewLink);
-                        }
-                        catch (IOException ex){
-                            attachments[0].setText("We had problem during review creation from your Pull request. " + ex.getMessage());
-                        }
+                        final String response = responseUrl;
+                        new Thread(() -> {
+                            try {
+
+                                String reviewL = GitHubService.createGitHubPullRequestAndGetReviewLink("https://github.com", "agubanov/jbot", gitHubToken, "pr from bot", "test-branch", "master");
+                                RichMessage rMessage = new RichMessage("We are done! Your review is created " + reviewL);
+                                RestTemplate restTemplate = new RestTemplate();
+                                restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
+
+                            }catch(IOException ex){
+                                RichMessage rMessage = new RichMessage("Exception during review creation." + ex.getMessage());
+                                RestTemplate restTemplate = new RestTemplate();
+                                restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
+                            }
+
+                        }).start();
+
+                        attachments[0].setText("Pull request and review are creating now...");
 
                     }
                 }
