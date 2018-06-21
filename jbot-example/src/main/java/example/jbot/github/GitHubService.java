@@ -21,7 +21,7 @@ public class GitHubService {
 		GitHubAPI api = GitHubAPI.build(host, repo, token);
 		GitHubPullRequest pullRequest = api.createPullRequest(title, from, to);
 		try {
-			Thread.sleep(2000);
+			Thread.sleep(1000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
