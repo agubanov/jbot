@@ -1,6 +1,6 @@
 package example.jbot.slack;
 
-import example.jbot.JBotApplication;
+
 import me.ramswaroop.jbot.core.common.Controller;
 import me.ramswaroop.jbot.core.common.EventType;
 import me.ramswaroop.jbot.core.common.JBot;
@@ -12,9 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.socket.WebSocketSession;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.regex.Matcher;
 
 /**
  * A simple Slack Bot. You can create multiple bots by just
@@ -47,47 +44,7 @@ public class SlackBot extends Bot {
         return this;
     }
 
-    /**
-     * Invoked when bot receives an event of type message with text satisfying
-     * the pattern {@code ([a-z ]{2})(\d+)([a-z ]{2})}. For example,
-     * messages like "ab12xy" or "ab2bc" etc will invoke this method.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(events = EventType.MESSAGE, pattern = "^([a-z ]{2})(\\d+)([a-z ]{2})$")
-    public void onReceiveMessage(WebSocketSession session, Event event, Matcher matcher) {
-        reply(session, event, "First group: " + matcher.group(0) + "\n" +
-                "Second group: " + matcher.group(1) + "\n" +
-                "Third group: " + matcher.group(2) + "\n" +
-                "Fourth group: " + matcher.group(3));
-    }
 
-    /**
-     * Invoked when an item is pinned in the channel.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(events = EventType.PIN_ADDED)
-    public void onPinAdded(WebSocketSession session, Event event) {
-        reply(session, event, "Thanks for the pin! You can find all pinned items under channel details.");
-    }
-
-    /**
-     * Invoked when bot receives an event of type file shared.
-     * NOTE: You can't reply to this event as slack doesn't send
-     * a channel id for this event type. You can learn more about
-     * <a href="https://api.slack.com/events/file_shared">file_shared</a>
-     * event from Slack's Api documentation.
-     *
-     * @param session
-     * @param event
-     */
-    @Controller(events = EventType.FILE_SHARED)
-    public void onFileShared(WebSocketSession session, Event event) {
-        logger.info("File shared: {}", event);
-    }
 
     private UserProfile getUserProfile(String userId) {
         UserProfileUtil.userProfileMap.putIfAbsent(userId, new UserProfile());
@@ -122,6 +79,9 @@ public class SlackBot extends Bot {
 
     @Controller(events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void askGithubCredentials(WebSocketSession session, Event event) {
+        if (!isConversationOn(event)) {
+            return;
+        }
         String[] creds = event.getText().split(" ");
         if (creds.length == 2) {
             UserProfile userProfile = getUserProfile(event.getUserId());
