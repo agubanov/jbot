@@ -26,7 +26,6 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import org.springframework.web.client.RestTemplate;
 import java.io.IOException;
 
 
@@ -386,14 +385,14 @@ public class SlackSlashCommand {
                 CollaboratorService service = new CollaboratorService();
                 attachments[0] = new Attachment();
                 String authTicket = service.login(userProfile.getCollabLogin(), userProfile.getCollabPassword(), "http://");
-                if(text.contains("start")) {
+                if (text.contains("add") || text.contains("start")) {
                     ReviewCommand reviewCommand = new ReviewCommand(text);
-                    attachments[0].setText("review is starting now ..... ");
+                    attachments[0].setText("processing ..... ");
 
                     final String response = responseUrl;
                     //start in new thread
                     new Thread(() -> {
-                        String responseText = service.startReview(reviewCommand, authTicket);
+                        String responseText = service.startReview(reviewCommand, userProfile.getCollabLogin(), authTicket);
                         RichMessage rMessage = new RichMessage(responseText);
                         RestTemplate restTemplate = new RestTemplate();
                         restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
