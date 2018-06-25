@@ -6,6 +6,8 @@ public class UserProfile {
     private String gitHubRepo;
     private String gitHubToken;
 
+    private String botChannel;
+
     public String getCollabLogin() {
         return collabLogin;
     }
@@ -36,5 +38,13 @@ public class UserProfile {
 
     public void setGitHubToken(String gitHubToken) {
         this.gitHubToken = gitHubToken;
+    }
+
+    public String getBotChannel() {
+        return botChannel;
+    }
+
+    public void setBotChannel(String botChannel) {
+        this.botChannel = botChannel;
     }
 }

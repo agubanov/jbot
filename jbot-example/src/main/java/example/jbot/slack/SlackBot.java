@@ -1,5 +1,6 @@
 package example.jbot.slack;
 
+import example.jbot.JBotApplication;
 import me.ramswaroop.jbot.core.common.Controller;
 import me.ramswaroop.jbot.core.common.EventType;
 import me.ramswaroop.jbot.core.common.JBot;
@@ -28,7 +29,6 @@ import java.util.regex.Matcher;
 public class SlackBot extends Bot {
 
     private static final Logger logger = LoggerFactory.getLogger(SlackBot.class);
-    private static Map<String, UserProfile> profileMap = new HashMap<>();
 
     /**
      * Slack token from application.properties file. You can get your slack token
@@ -90,12 +90,15 @@ public class SlackBot extends Bot {
     }
 
     private UserProfile getUserProfile(String userId) {
-        return profileMap.putIfAbsent(userId, new UserProfile());
+        UserProfileUtil.userProfileMap.putIfAbsent(userId, new UserProfile());
+        return UserProfileUtil.userProfileMap.get(userId);
     }
 
 
-    @Controller(pattern = "(configure profile)", next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    @Controller(pattern = "(config profile)", next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void configureProfile(WebSocketSession session, Event event) {
+        UserProfile userProfile = getUserProfile(event.getUserId());
+        userProfile.setBotChannel(event.getChannelId());
         startConversation(event, "askCollabCredentials");   // start conversation
         reply(session, event, "Let's the party begin.\nEnter collab login and password (use whitespace as delimeter)");
     }

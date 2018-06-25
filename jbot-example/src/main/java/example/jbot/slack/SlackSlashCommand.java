@@ -2,6 +2,7 @@ package example.jbot.slack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import example.jbot.JBotApplication;
 import me.ramswaroop.jbot.core.slack.models.Attachment;
 import me.ramswaroop.jbot.core.slack.models.RichMessage;
 import org.slf4j.Logger;
@@ -9,10 +10,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Sample Slash Command Handler.
@@ -32,6 +40,172 @@ public class SlackSlashCommand {
      */
     @Value("${slashCommandToken}")
     private String slackToken;
+
+    @Value("${slackIncomingWebhookUrl}")
+    private String slackIncomingWebhookUrl;
+
+    @RequestMapping(value = "/slackwebhook",
+            method = RequestMethod.POST)
+    public void onReceiveWebhook(@RequestBody Map<String, Object> payload) {
+
+        String eventType = payload.getOrDefault("eventType", "").toString();
+        WebhookEventType webhookEventType = WebhookEventType.valueOf(eventType);
+
+        if (webhookEventType == null) {
+            return;
+        }
+
+        switch(webhookEventType) {
+            case COMMENT_ADDED:
+                commentAddedWebhook(payload);
+                break;
+            case REVIEW_PHASE_CHANGED:
+                reviewPhaseWebhook(payload);
+                break;
+
+            case ADDED_FILES:
+                addedFilesWebhook(payload);
+                break;
+
+        }
+    }
+
+    private void addedFilesWebhook(@RequestBody Map<String, Object> payload) {
+        List<String> participants = (List<String>) payload.getOrDefault("reviewParticipants", Collections.EMPTY_LIST);
+        if (participants.isEmpty()) { return; }
+
+        String reviewId = payload.getOrDefault("reviewId", "").toString();
+
+        for (String login : participants) {
+            RestTemplate restTemplate = new RestTemplate();
+            RichMessage richMessage = new RichMessage();
+            UserProfile userProfile = UserProfileUtil.getUserProfileByCollabLogin(login);
+
+            if (userProfile != null) {
+                richMessage.setChannel(userProfile.getBotChannel());
+            }
+
+            List<String> filePaths = (List<String>) payload.getOrDefault("filePaths", Collections.EMPTY_LIST);
+            String linkReview = payload.getOrDefault("linkReview", "").toString();
+            String userAddedFile = payload.getOrDefault("userAddedFile", "").toString();
+
+            StringBuilder textBuilder = new StringBuilder();
+            textBuilder.append("New files were added in review #");
+            textBuilder.append(reviewId);
+            textBuilder.append(" by ");
+            textBuilder.append(userAddedFile);
+
+            richMessage.setText(textBuilder.toString());
+
+            Attachment[] attachments = new Attachment[filePaths.size() + 1];
+            for (int i = 0; i < filePaths.size(); i++) {
+                attachments[i] = new Attachment();
+                attachments[i].setText(filePaths.get(i));
+            }
+            attachments[attachments.length - 1] = new Attachment();
+            attachments[attachments.length - 1].setText(linkReview);
+            richMessage.setAttachments(attachments);
+
+            // Always remember to send the encoded message to Slack
+            try {
+                restTemplate.postForEntity(slackIncomingWebhookUrl, richMessage.encodedMessage(), String.class);
+            } catch (RestClientException e) {
+                logger.error("Error posting to Slack Incoming Webhook: ", e);
+            }
+        }
+    }
+
+    private void reviewPhaseWebhook(@RequestBody Map<String, Object> payload) {
+        List<String> participants = (List<String>) payload.getOrDefault("reviewParticipants", Collections.EMPTY_LIST);
+        if (participants.isEmpty()) { return; }
+
+        String reviewId = payload.getOrDefault("reviewId", "").toString();
+
+        for (String login : participants) {
+            RestTemplate restTemplate = new RestTemplate();
+            RichMessage richMessage = new RichMessage();
+            UserProfile userProfile = UserProfileUtil.getUserProfileByCollabLogin(login);
+
+            if (userProfile != null) {
+                richMessage.setChannel(userProfile.getBotChannel());
+            }
+
+            String newPhase = payload.getOrDefault("newPhase", "").toString();
+            String linkReview = payload.getOrDefault("linkReview", "").toString();
+            String userChangedPhase = payload.getOrDefault("userChangedPhase", "").toString();
+
+            StringBuilder textBuilder = new StringBuilder();
+            textBuilder.append("Phase was changed to ");
+            textBuilder.append(newPhase);
+            textBuilder.append(" in review #");
+            textBuilder.append(reviewId);
+            textBuilder.append(" by ");
+            textBuilder.append(userChangedPhase);
+
+            richMessage.setText(textBuilder.toString());
+
+            Attachment[] attachments = new Attachment[1];
+            attachments[0] = new Attachment();
+            attachments[0].setText(linkReview);
+            richMessage.setAttachments(attachments);
+
+            // Always remember to send the encoded message to Slack
+            try {
+                restTemplate.postForEntity(slackIncomingWebhookUrl, richMessage.encodedMessage(), String.class);
+            } catch (RestClientException e) {
+                logger.error("Error posting to Slack Incoming Webhook: ", e);
+            }
+        }
+    }
+
+    private void commentAddedWebhook(@RequestBody Map<String, Object> payload) {
+        List<String> participants = (List<String>) payload.getOrDefault("reviewParticipants", Collections.EMPTY_LIST);
+        if (participants.isEmpty()) { return; }
+
+        String reviewId = payload.getOrDefault("reviewId", "").toString();
+
+        for (String login : participants) {
+            RestTemplate restTemplate = new RestTemplate();
+            RichMessage richMessage = new RichMessage();
+            UserProfile userProfile = UserProfileUtil.getUserProfileByCollabLogin(login);
+
+            if (userProfile != null) {
+                richMessage.setChannel(userProfile.getBotChannel());
+            }
+
+            String path = payload.getOrDefault("path", "").toString();
+            String linkReview = payload.getOrDefault("linkReview", "").toString();
+            String commentText = payload.getOrDefault("commentText", "").toString();
+            String commentLine = payload.getOrDefault("commentLine", "").toString();
+            Boolean isOverall = Boolean.valueOf(payload.getOrDefault("isOverallComment", "").toString());
+            StringBuilder textBuilder = new StringBuilder();
+            textBuilder.append("New comment was added in review #");
+            textBuilder.append(reviewId);
+            if (!isOverall) {
+                textBuilder.append(" to file ");
+                textBuilder.append(path);
+                textBuilder.append(" on line ");
+                textBuilder.append(commentLine);
+            } else {
+                textBuilder.append(" to Overall chat");
+            }
+            richMessage.setText(textBuilder.toString());
+
+            Attachment[] attachments = new Attachment[2];
+            attachments[0] = new Attachment();
+            attachments[0].setText(commentText);
+            attachments[1] = new Attachment();
+            attachments[1].setText(linkReview);
+            richMessage.setAttachments(attachments);
+
+            // Always remember to send the encoded message to Slack
+            try {
+                restTemplate.postForEntity(slackIncomingWebhookUrl, richMessage.encodedMessage(), String.class);
+            } catch (RestClientException e) {
+                logger.error("Error posting to Slack Incoming Webhook: ", e);
+            }
+        }
+    }
 
 
     /**
