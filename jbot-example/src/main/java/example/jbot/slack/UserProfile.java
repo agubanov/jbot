@@ -1,6 +1,7 @@
 package example.jbot.slack;
 
 public class UserProfile {
+    private String collabUrl;
     private String collabLogin;
     private String collabPassword;
     private String gitHubRepo;
@@ -46,5 +47,19 @@ public class UserProfile {
 
     public void setBotChannel(String botChannel) {
         this.botChannel = botChannel;
+    }
+
+    public String getCollabUrl() {
+        return collabUrl;
+    }
+
+    public void setCollabUrl(String collabUrl) {
+        this.collabUrl = collabUrl;
+    }
+
+    public String toString() {
+        return "Collab URL: " + collabUrl + "\n" +
+                "Collab Login/Password: " + collabLogin + "/****\n" +
+                "Github Repo/Token: " + gitHubRepo + "/****\n";
     }
 }

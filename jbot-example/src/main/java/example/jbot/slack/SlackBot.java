@@ -51,13 +51,31 @@ public class SlackBot extends Bot {
         return UserProfileUtil.userProfileMap.get(userId);
     }
 
+    @Controller(pattern = "(show profile)", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    public void showProfile(WebSocketSession session, Event event) {
+        if (!UserProfileUtil.userProfileMap.containsKey(event.getUserId())) {
+            reply(session, event, "User profile was not configured yet");
+            return;
+        }
+        UserProfile userProfile = getUserProfile(event.getUserId());
+        reply(session, event, userProfile.toString());
+    }
 
-    @Controller(pattern = "(config profile)", next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+
+    @Controller(pattern = "(config profile)", next = "askCollabUrl", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void configureProfile(WebSocketSession session, Event event) {
         UserProfile userProfile = getUserProfile(event.getUserId());
         userProfile.setBotChannel(event.getChannelId());
-        startConversation(event, "askCollabCredentials");   // start conversation
+        startConversation(event, "askCollabUrl");   // start conversation
+        reply(session, event, "Let's the party begin.\nEnter Collaborator URL");
+    }
+
+    @Controller(next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    public void askCollabUrl(WebSocketSession session, Event event) {
+        UserProfile userProfile = getUserProfile(event.getUserId());
+        userProfile.setCollabUrl(event.getText());
         reply(session, event, "Let's the party begin.\nEnter collab login and password (use whitespace as delimeter)");
+        nextConversation(event);
     }
 
 
@@ -87,7 +105,7 @@ public class SlackBot extends Bot {
             UserProfile userProfile = getUserProfile(event.getUserId());
             userProfile.setGitHubRepo(creds[0]);
             userProfile.setGitHubToken(creds[1]);
-            reply(session, event, "You are done! Good job!");
+            reply(session, event, "You are done!\n" + userProfile);
             stopConversation(event);    // stop conversation only if user says no
         } else {
             reply(session, event,  "You entered wrong number of parameters! \nStart from the beginning");
