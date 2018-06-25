@@ -18,4 +18,8 @@ public class UserProfileUtil {
         return optional.orElse(null);
 
     }
+
+    public static UserProfile getUserProfileByUserId(String userId) {
+        return userProfileMap.get(userId);
+    }
 }

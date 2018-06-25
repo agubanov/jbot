@@ -48,8 +48,8 @@ public class SlackSlashCommand {
     @Value("${slackIncomingWebhookUrl}")
     private String slackIncomingWebhookUrl;
 
-    @Value("${gitHubToken}")
-    private String gitHubToken;
+    /*@Value("${gitHubToken}")
+    private String gitHubToken;*/
 
     @RequestMapping(value = "/slackwebhook",
             method = RequestMethod.POST)
@@ -317,6 +317,12 @@ public class SlackSlashCommand {
         final String CREATE_PR = "/create-pr";
         final String REVIEW = "/review";
 
+        final UserProfile userProfile = UserProfileUtil.getUserProfileByUserId(userId);
+        if (userProfile == null) {
+            richMessage.setText("User profile is not properly configured for " + userName);
+            return richMessage.encodedMessage();
+        }
+
         switch(command){
 
             case CREATE_PR :
@@ -331,7 +337,7 @@ public class SlackSlashCommand {
                     String[] params = text.split(" ");
                     if (params.length != 2 && params.length != 3){
                         if(params.length == 1 && "close-pr".equals(params[0])){
-                            GitHubService.closePullRequest("https://github.com", "agubanov/jbot", gitHubToken, "test-branch");
+                            GitHubService.closePullRequest("https://github.com", userProfile.getGitHubRepo(), userProfile.getGitHubToken(), "test-branch");
                             attachments[0].setText("Pull request was successfully closed.");
                         }
                         else {
@@ -353,7 +359,7 @@ public class SlackSlashCommand {
                         new Thread(() -> {
                             try {
 
-                                String reviewL = GitHubService.createGitHubPullRequestAndGetReviewLink("https://github.com", "agubanov/jbot", gitHubToken, "pr from bot", "test-branch", "master");
+                                String reviewL = GitHubService.createGitHubPullRequestAndGetReviewLink("https://github.com", userProfile.getGitHubRepo(), userProfile.getGitHubToken(), "pr from bot", "test-branch", "master");
                                 RichMessage rMessage = new RichMessage("We are done! Your review is created " + reviewL);
                                 RestTemplate restTemplate = new RestTemplate();
                                 restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
