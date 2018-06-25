@@ -1,4 +1,4 @@
-package me.ramswaroop.jbot.core.github;
+package example.jbot.github;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

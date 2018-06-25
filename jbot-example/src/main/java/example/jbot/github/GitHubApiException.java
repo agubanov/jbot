@@ -1,4 +1,4 @@
-package me.ramswaroop.jbot.core.github;
+package example.jbot.github;
 
 import java.io.IOException;
 

@@ -1,18 +1,21 @@
-package me.ramswaroop.jbot.core.github;
+package example.jbot.github;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.GET;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.POST;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.PUT;
-import static me.ramswaroop.jbot.core.github.GitHubApiClient.Method.DELETE;
+import java.util.List;
+
+import static example.jbot.github.GitHubApiClient.Method.GET;
+import static example.jbot.github.GitHubApiClient.Method.POST;
+import static example.jbot.github.GitHubApiClient.Method.PUT;
+import static example.jbot.github.GitHubApiClient.Method.DELETE;
 
 
 public class GitHubAPI {
 
 	private String host;
+	private String repo;
 	private String token;
 
 	private static final ObjectMapper MAPPER = new ObjectMapper();
@@ -30,15 +33,16 @@ public class GitHubAPI {
 		MAPPER.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 	}
 
-	private GitHubAPI(String host, String token) {
+	private GitHubAPI(String host, String repo, String token) {
 		this.host = host.startsWith("https://github.com")
 				? "https://api.github.com"
 				: removeTrailingSlash(host) + "/api/v3";
+		this.repo = repo;
 		this.token = token;
 	}
 
-	public static GitHubAPI build(String host, String apiToken) {
-		return new GitHubAPI(host, apiToken);
+	public static GitHubAPI build(String host, String repo, String apiToken) {
+		return new GitHubAPI(host, repo, apiToken);
 	}
 
 	private GitHubApiClient get() {
@@ -79,32 +83,49 @@ public class GitHubAPI {
 //				.toList(host + "/user" + REPOS, GitHubRepository.class);
 //	}
 
-	public GitHubPullRequest createPullRequest(String repo, String title, String head, String base) throws IOException {
+	public GitHubPullRequest createPullRequest(String title, String head, String base) throws IOException {
 		return post()
 				.with("title", title)
 				.with("head", head)
 				.with("base", base)
 				.to(host + REPOS + repo + PULLS, GitHubPullRequest.class);
 	}
+
+	public void closePullRequest(int pullRequestNumber) throws IOException {
+		post().with("state", "closed")
+				.to(host + REPOS + repo + PULLS + pullRequestNumber, null);
+	}
+	
+	
+	public GitHubPullRequest getPullRequest(String repo, int pullRequestNumber) throws IOException {
+		return get()
+				.to(host + REPOS + repo + PULLS + pullRequestNumber, GitHubPullRequest.class);
+	}
+	
+	/**
+	 * Get pull requests of repository.
+	 * State is 'open' by default
+	 */
+	public List<GitHubPullRequest> getPullRequests(String head) throws IOException {
+		return get()
+				.with("head", head)
+				.toList(host + REPOS + repo + PULLS, GitHubPullRequest.class);
+	}
+	
+	//	}
+	//				.toList(host + REPOS + repo + PULLS, GitHubPullRequest.class);
+	//		return get()
+	//	public List<GitHubPullRequest> getPullRequests(String repo) throws IOException {
+	//	 */
+	//	 * State is 'open' by default
+	//	 * Get pull requests of repository.
+	//	/**
+	//
+	//	}
+	//		return get()
+	//	public GitHubPullRequest getPullRequest(String repo, int pullRequestNumber) throws IOException {
+	//				.to(host + REPOS + repo + PULLS + pullRequestNumber, GitHubPullRequest.class);
 //
-//	public GitHubPullRequest getPullRequest(String repo, int pullRequestNumber) throws IOException {
-//		return get()
-//				.to(host + REPOS + repo + PULLS + pullRequestNumber, GitHubPullRequest.class);
-//	}
-//
-//	/**
-//	 * Get pull requests of repository.
-//	 * State is 'open' by default
-//	 */
-//	public List<GitHubPullRequest> getPullRequests(String repo) throws IOException {
-//		return get()
-//				.toList(host + REPOS + repo + PULLS, GitHubPullRequest.class);
-//	}
-//
-//	public void closePullRequest(String repo, int pullRequestNumber) throws IOException {
-//		post().with("state", "closed")
-//				.to(host + REPOS + repo + PULLS + pullRequestNumber, null);
-//	}
 //
 //	public void mergePullRequest(String repo, GitHubPullRequest pullRequest) throws IOException {
 //		put().with("sha", pullRequest.getHead().getSha())
@@ -196,14 +217,14 @@ public class GitHubAPI {
 	/**
 	 * Get the combined status for a pull request.
 	 */
-	public GitHubCombinedStatus getStatus(String repo, GitHubPullRequest pullRequest) throws IOException {
-		return getStatus(repo, pullRequest.getHeadHash());
+	public GitHubCombinedStatus getStatus(GitHubPullRequest pullRequest) throws IOException {
+		return getStatus(pullRequest.getHeadHash());
 	}
 
 	/**
 	 * Get the combined status for a specific ref. The most recent status for each context is returned, up to 100
 	 */
-	public GitHubCombinedStatus getStatus(String repo, String sha) throws IOException {
+	public GitHubCombinedStatus getStatus(String sha) throws IOException {
 		return get()
 				.to(host + REPOS + repo + COMMITS + sha + "/status", GitHubCombinedStatus.class);
 	}
