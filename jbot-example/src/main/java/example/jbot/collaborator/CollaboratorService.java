@@ -5,6 +5,9 @@ import example.jbot.collaborator.dto.LoginRequestArgs;
 import example.jbot.collaborator.dto.LoginRequestDto;
 import example.jbot.collaborator.dto.LoginResponseDto;
 import example.jbot.github.GitHubApiClient;
+import example.jbot.slack.command.ReviewCommand;
+import example.jbot.slack.command.ReviewPokeCommand;
+import example.jbot.slack.command.ReviewStatusCommand;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpMethod;
 import org.apache.commons.httpclient.HttpStatus;
@@ -45,6 +48,24 @@ public class CollaboratorService {
         else{
             return debugMessage.toString();
         }
+    }
+
+    public String startReview(ReviewCommand command, String authTicket){
+        //TODO all logic related to the start review
+
+        return "review#" + command.getReviewId() + " was started!";
+    }
+
+    public String pokeReviewParticipants(ReviewPokeCommand command, String authTicket){
+        //TODO all logic related to poke review participants
+
+        return "";
+    }
+
+    public String getReviewStatus(ReviewStatusCommand command, String authTicket){
+        //TODO all logic related to the get review status
+
+        return "";
     }
 
     /**

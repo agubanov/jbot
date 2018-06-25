@@ -2,7 +2,11 @@ package example.jbot.slack;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import example.jbot.collaborator.CollaboratorService;
 import example.jbot.github.GitHubService;
+import example.jbot.slack.command.ReviewCommand;
+import example.jbot.slack.command.ReviewPokeCommand;
+import example.jbot.slack.command.ReviewStatusCommand;
 import me.ramswaroop.jbot.core.slack.models.Attachment;
 import me.ramswaroop.jbot.core.slack.models.RichMessage;
 import org.slf4j.Logger;
@@ -327,7 +331,7 @@ public class SlackSlashCommand {
 
             case CREATE_PR :
                 attachments[0] = new Attachment();
-                attachments[0].setText("Create PR command was run");
+                attachments[0].setText("Create PR command was ran");
                 //todo ADD SOME ACTIVITIES FOR CREATE PR COMMAND
                 if(text == null || text.isEmpty()){
                     richMessage.setText("Parameters are required. Please use this format of command: /create-pr {from-branch} {to-branch}");
@@ -379,10 +383,38 @@ public class SlackSlashCommand {
                 break;
 
             case REVIEW:
+                CollaboratorService service = new CollaboratorService();
                 attachments[0] = new Attachment();
-                attachments[0].setText("/review command was run");
-                //todo ADD SOME ACTIVITIES FOR REVIEW COMMAND
+                String authTicket = service.login(userProfile.getCollabLogin(), userProfile.getCollabPassword(), "http://");
+                if(text.contains("start")) {
+                    ReviewCommand reviewCommand = new ReviewCommand(text);
+                    attachments[0].setText("review is starting now ..... ");
 
+                    final String response = responseUrl;
+                    //start in new thread
+                    new Thread(() -> {
+                        String responseText = service.startReview(reviewCommand, authTicket);
+                        RichMessage rMessage = new RichMessage(responseText);
+                        RestTemplate restTemplate = new RestTemplate();
+                        restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
+
+                    }).start();
+                }
+                else if(text.contains("poke")){
+                    ReviewPokeCommand reviewPokeCommand = new ReviewPokeCommand(text);
+                    service.pokeReviewParticipants(reviewPokeCommand, authTicket);
+                    attachments[0].setText("Collaborator sending notification to the required participants ");
+                }
+                else if(text.contains("status")){
+                    ReviewStatusCommand reviewStatusCommand = new ReviewStatusCommand(text);
+                    String response = service.getReviewStatus(reviewStatusCommand, authTicket);
+                    attachments[0].setText("review#"+reviewStatusCommand.getReviewId() + " status: " + response);
+                }
+                else {
+
+                    attachments[0].setText("we don't support such command");
+                }
+                //todo ADD SOME ACTIVITIES FOR REVIEW COMMAND
 
                 break;
 
