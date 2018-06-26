@@ -51,7 +51,7 @@ public class SlackBot extends Bot {
         return UserProfileUtil.userProfileMap.get(userId);
     }
 
-    @Controller(pattern = "(show profile)", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    /*@Controller(pattern = "(show profile)", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void showProfile(WebSocketSession session, Event event) {
         if (!UserProfileUtil.userProfileMap.containsKey(event.getUserId())) {
             reply(session, event, "User profile was not configured yet");
@@ -59,7 +59,15 @@ public class SlackBot extends Bot {
         }
         UserProfile userProfile = getUserProfile(event.getUserId());
         reply(session, event, userProfile.toString());
-    }
+    }*/
+
+    /*@Controller(pattern = "(config profile)", next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
+    public void configureProfile(WebSocketSession session, Event event) {
+        UserProfile userProfile = getUserProfile(event.getUserId());
+        userProfile.setBotChannel(event.getChannelId());
+        startConversation(event, "askCollabCredentials");   // start conversation
+        reply(session, event, "Let's the party begin.\nEnter collab login and password (use whitespace as delimeter)");
+    }*/
 
 
     @Controller(pattern = "(config profile)", next = "askCollabUrl", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
@@ -68,10 +76,14 @@ public class SlackBot extends Bot {
         userProfile.setBotChannel(event.getChannelId());
         startConversation(event, "askCollabUrl");   // start conversation
         reply(session, event, "Let's the party begin.\nEnter Collaborator URL");
+
     }
 
     @Controller(next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void askCollabUrl(WebSocketSession session, Event event) {
+        if (!isConversationOn(event)) {
+            return;
+        }
         UserProfile userProfile = getUserProfile(event.getUserId());
         String collabUrl = event.getText();
         if (collabUrl.startsWith("<")) {
@@ -83,13 +95,16 @@ public class SlackBot extends Bot {
         }
 
         userProfile.setCollabUrl(collabUrl);
-        reply(session, event, "Let's the party begin.\nEnter collab login and password (use whitespace as delimeter)");
+        reply(session, event, "Enter collab login and password (use whitespace as delimeter)");
         nextConversation(event);
     }
 
 
     @Controller(next = "askGithubCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void askCollabCredentials(WebSocketSession session, Event event) {
+        if (!isConversationOn(event)) {
+            return;
+        }
         String[] creds = event.getText().split(" ");
         if (creds.length == 2) {
             UserProfile userProfile = getUserProfile(event.getUserId());
