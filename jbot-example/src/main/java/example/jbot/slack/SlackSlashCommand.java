@@ -371,6 +371,7 @@ public class SlackSlashCommand {
 
             case REVIEW:
                 CollaboratorService service = new CollaboratorService();
+                //service.setServerUrl(userProfile.get);
                 attachments[0] = new Attachment();
                 String authTicket = service.login(userProfile.getCollabLogin(), userProfile.getCollabPassword(), "http://");
                 if (text.contains("add") || text.contains("start")) {
@@ -390,12 +391,12 @@ public class SlackSlashCommand {
                 else if(text.contains("poke")){
                     ReviewPokeCommand reviewPokeCommand = new ReviewPokeCommand(text);
                     service.pokeReviewParticipants(reviewPokeCommand, authTicket);
-                    attachments[0].setText("Collaborator sending notification to the required participants ");
+                    attachments[0].setText("Collaborator've send notifications to the required participants ");
                 }
                 else if(text.contains("status")){
                     ReviewStatusCommand reviewStatusCommand = new ReviewStatusCommand(text);
-                    String response = service.getReviewStatus(reviewStatusCommand, authTicket);
-                    attachments[0].setText("review#"+reviewStatusCommand.getReviewId() + " status: " + response);
+                    String response = service.getReviewDetails(reviewStatusCommand, userProfile.getCollabLogin(), authTicket);
+                    attachments[0].setText("review #"+reviewStatusCommand.getReviewId() + " " + response);
                 }
                 else {
 
