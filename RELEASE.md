@@ -1,5 +1,5 @@
 # JBot Release Procedure
-
+Test line
 We release JBot using the [maven-release plugin](http://central.sonatype.org/pages/apache-maven.html) method. Before 
 releasing, we have to setup gpg/gpg2 on our machine. This is required to sign our artifacts before releasing it to the
 Central Repository. We have to generate a key and distribute the public key to a key server. Follow the detailed 
