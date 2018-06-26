@@ -1,15 +1,7 @@
 package example.jbot.collaborator;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import example.jbot.collaborator.dto.AssignmentDto;
-import example.jbot.collaborator.dto.AssignmentRole;
-import example.jbot.collaborator.dto.LoginRequestArgs;
-import example.jbot.collaborator.dto.LoginRequestDto;
-import example.jbot.collaborator.dto.LoginResponseDto;
-import example.jbot.collaborator.dto.StartReviewArgs;
-import example.jbot.collaborator.dto.StartReviewDto;
-import example.jbot.collaborator.dto.UpdateAssignmentsArgs;
-import example.jbot.collaborator.dto.UpdateAssignmentsDto;
+import example.jbot.collaborator.dto.*;
 import example.jbot.github.GitHubApiClient;
 import example.jbot.slack.ReviewAction;
 import example.jbot.slack.command.ReviewCommand;
@@ -34,7 +26,7 @@ public class CollaboratorService {
 	
 	private static final Logger logger = LoggerFactory.getLogger(CollaboratorService.class);
     private static final String JSON_API_ENDPOINT = "/services/json/v1";
-    private static String serverUrl = "http://collab.aus.smartbear.com";
+    private String serverUrl = "http://collab.aus.smartbear.com";
     private HttpClient client = new HttpClient();
     private HttpMethod method;
     private GitHubApiClient.Method methodType;
@@ -141,8 +133,10 @@ public class CollaboratorService {
 				logger.debug("response: " + resStr);
 				//save message for debug info
 				message.append(resStr);
-				resStr = resStr.replace('[', ' ');
-                resStr = resStr.replace(']', ' ');
+				resStr = resStr.trim();
+                resStr = resStr.substring(1, resStr.length() - 1);
+				//resStr = resStr.replace('[', ' ');
+                //resStr = resStr.replace(']', ' ');
 				if (responseObjClass == null) {
 					return null;
 				}
@@ -159,11 +153,59 @@ public class CollaboratorService {
 
     }
 
-    public static String getServerUrl() {
+    public String getReviewDetails(ReviewStatusCommand command, String login, String ticket){
+
+        String jsonRequest = "{\"command\" : \"SessionService.authenticate\",\n" +
+                "\n" +
+                "               \"args\":{\"login\":\"" + login + "\",\"ticket\":\""+ticket+"\"}},\n" +
+                "\n" +
+                "         {\"command\" : \"ReviewService.getReviewSummary\",\n" +
+                "         \"args\" : {\"reviewId\":\""+command.getReviewId()+"\",\n" +
+                "         \"clientBuild\" : \"11311302\",\n" +
+                "         \"clientGuid()\" : \"52b19a07163ee7a14644aed1624f7104\",\n" +
+                "         \"updateToken\" : \"\",\n" +
+                "         \"active\" : true\n" +
+                "         }\n" +
+                "         }\n" +
+                "\n" +
+                "\n";
+//        return jsonRequest;
+        try{
+            this.method = new PostMethod();
+            PostMethod method = new PostMethod(serverUrl + JSON_API_ENDPOINT);
+            StringRequestEntity requestEntity = new StringRequestEntity(
+                    " [ " + jsonRequest + " ]",
+                    "application/json",
+                    "UTF-8");
+            method.setRequestEntity(requestEntity);
+            int statusCode = client.executeMethod(method);
+
+            if(statusCode == HttpStatus.SC_OK){
+                String resStr = new String(method.getResponseBody(), "UTF-8");
+                logger.debug("response: " + resStr);
+                resStr = resStr.substring(1, resStr.length() - 1);
+                resStr = resStr.replace("{\"result\":{}},", "");
+                ObjectMapper mapper = new ObjectMapper();
+                StatusResponseDto result = mapper.readValue(resStr, StatusResponseDto.class);
+                if(command.isFullStatus()) {
+                    return result.getResult().getInfo();
+                }
+                else{
+                    return result.getResult().getShortInfo();
+                }
+            }
+
+        }catch (IOException ex){
+            return "Exception " + ex.getMessage();
+        }
+        return "";
+    }
+
+    public String getServerUrl() {
         return serverUrl;
     }
 
-    public static void setServerUrl(String serverUrl) {
-        CollaboratorService.serverUrl = serverUrl;
+    public void setServerUrl(String serverUrl) {
+        this.serverUrl = serverUrl;
     }
 }

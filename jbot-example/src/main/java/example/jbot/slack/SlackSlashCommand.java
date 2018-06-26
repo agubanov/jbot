@@ -327,62 +327,51 @@ public class SlackSlashCommand {
         }
 
         switch(command){
-
-            case CREATE_PR :
+    
+            case CREATE_PR:
                 attachments[0] = new Attachment();
                 attachments[0].setText("Create PR command was ran");
                 //todo ADD SOME ACTIVITIES FOR CREATE PR COMMAND
-                if(text == null || text.isEmpty()){
-                    richMessage.setText("Parameters are required. Please use this format of command: /create-pr {from-branch} {to-branch}");
+                if (text == null || text.isEmpty()) {
+                    richMessage.setText("Parameters are required. Please use this format of command: /create-pr {from-branch} {to-branch} {title}");
                     attachments[0] = null;
-                }
-                else {
+                } else {
                     String[] params = text.split(" ");
-                    if (params.length != 2 && params.length != 3){
-                        if(params.length == 1 && "close-pr".equals(params[0])){
+                    if (params.length != 2 && params.length != 3) {
+                        if (params.length == 1 && "close-pr".equals(params[0])) {
                             GitHubService.closePullRequest("https://github.com", userProfile.getGitHubRepo(), userProfile.getGitHubToken(), "test-branch");
                             attachments[0].setText("Pull request was successfully closed.");
-                        }
-                        else {
+                        } else {
                             richMessage.setText("Parameters are required. Please use this format of command: /create-pr {from-branch} {to-branch} {title}");
                             attachments[0] = null;
                         }
-                    }
-                    else{
-                        String message = (params.length == 3)? params[2]:"Pull request from " + params[0] + " to " + params[1];
-                        String host = "https://github.com";
-                        String repo = "zapelin/collab-github-v2";
-                        String gitHubtoken = "c6bc1343435c9747099c23d4557946717f2f273b";
-
-                        String title = "zapelin-patch-102";
-                        String head = "zapelin-patch-102";
-                        String base = "master";
-                        String reviewLink = "";
+                    } else {
+                        String from = params[0];
+                        String to = params[1];
+                        String message = (params.length == 3)
+                                ? params[2]
+                                : "Pull request from " + params[0] + " to " + params[1];
                         final String response = responseUrl;
                         new Thread(() -> {
                             try {
-
-                                String reviewL = GitHubService.createGitHubPullRequestAndGetReviewLink("https://github.com", userProfile.getGitHubRepo(), userProfile.getGitHubToken(), "pr from bot", "test-branch", "master");
+                                String reviewL = GitHubService.createGitHubPullRequestAndGetReviewLink("https://github.com", userProfile.getGitHubRepo(), userProfile.getGitHubToken(), message, from, to);
                                 RichMessage rMessage = new RichMessage("We are done! Your review is created " + reviewL);
                                 RestTemplate restTemplate = new RestTemplate();
                                 restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
-
-                            }catch(IOException ex){
+                            } catch (IOException ex) {
                                 RichMessage rMessage = new RichMessage("Exception during review creation." + ex.getMessage());
                                 RestTemplate restTemplate = new RestTemplate();
                                 restTemplate.postForEntity(response, rMessage.encodedMessage(), String.class);
                             }
-
                         }).start();
-
-                        attachments[0].setText("Pull request and review are creating now...");
-
+                        attachments[0].setText("Pull request and review are creating now ...");
                     }
                 }
                 break;
 
             case REVIEW:
                 CollaboratorService service = new CollaboratorService();
+                //service.setServerUrl(userProfile.get);
                 attachments[0] = new Attachment();
                 String authTicket = service.login(userProfile.getCollabLogin(), userProfile.getCollabPassword(), "http://");
                 if (text.contains("add") || text.contains("start")) {
@@ -402,12 +391,12 @@ public class SlackSlashCommand {
                 else if(text.contains("poke")){
                     ReviewPokeCommand reviewPokeCommand = new ReviewPokeCommand(text);
                     service.pokeReviewParticipants(reviewPokeCommand, authTicket);
-                    attachments[0].setText("Collaborator sending notification to the required participants ");
+                    attachments[0].setText("Collaborator've send notifications to the required participants ");
                 }
                 else if(text.contains("status")){
                     ReviewStatusCommand reviewStatusCommand = new ReviewStatusCommand(text);
-                    String response = service.getReviewStatus(reviewStatusCommand, authTicket);
-                    attachments[0].setText("review#"+reviewStatusCommand.getReviewId() + " status: " + response);
+                    String response = service.getReviewDetails(reviewStatusCommand, userProfile.getCollabLogin(), authTicket);
+                    attachments[0].setText("review #"+reviewStatusCommand.getReviewId() + " " + response);
                 }
                 else {
 
