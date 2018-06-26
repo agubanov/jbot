@@ -371,7 +371,7 @@ public class SlackSlashCommand {
 
             case REVIEW:
                 CollaboratorService service = new CollaboratorService();
-                //service.setServerUrl(userProfile.get);
+                service.setServerUrl(userProfile.getCollabUrl());
                 attachments[0] = new Attachment();
                 String authTicket = service.login(userProfile.getCollabLogin(), userProfile.getCollabPassword(), "http://");
                 if (text.contains("add") || text.contains("start")) {

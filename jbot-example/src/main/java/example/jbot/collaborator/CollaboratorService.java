@@ -167,9 +167,8 @@ public class CollaboratorService {
                 "         \"active\" : true\n" +
                 "         }\n" +
                 "         }\n" +
-                "\n" +
                 "\n";
-//        return jsonRequest;
+
         try{
             this.method = new PostMethod();
             PostMethod method = new PostMethod(serverUrl + JSON_API_ENDPOINT);
