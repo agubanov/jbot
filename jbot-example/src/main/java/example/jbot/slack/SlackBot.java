@@ -73,7 +73,16 @@ public class SlackBot extends Bot {
     @Controller(next = "askCollabCredentials", events = {EventType.DIRECT_MENTION, EventType.DIRECT_MESSAGE})
     public void askCollabUrl(WebSocketSession session, Event event) {
         UserProfile userProfile = getUserProfile(event.getUserId());
-        userProfile.setCollabUrl(event.getText());
+        String collabUrl = event.getText();
+        if (collabUrl.startsWith("<")) {
+            collabUrl = collabUrl.substring(1);
+        }
+
+        if (collabUrl.endsWith(">")) {
+            collabUrl = collabUrl.substring(0, collabUrl.length() - 1);
+        }
+
+        userProfile.setCollabUrl(collabUrl);
         reply(session, event, "Let's the party begin.\nEnter collab login and password (use whitespace as delimeter)");
         nextConversation(event);
     }
